@@ -16,10 +16,11 @@ class DecTree:
     def __init__(self, data):
         # Удаляем все строки с NA
         self.data = data.dropna()
+        self.features = self.data.columns.tolist()
 
     def fit(self):
         self.feature_types = self.identify_feature_types(self.data)
-        self.x_predata, self.y_predata = self.preprocess_data(self.data, self.feature_types)
+        self.x_predata, self.y_predata, self.features = self.preprocess_data(self.data, self.feature_types)
         self.x_split_val, _ = self.find_split_points(self.x_predata) #Списки внутри списков [[],[],[]]
         self.indices_pairs = self.splitted_indices(self.x_predata, self.x_split_val) # Словари внутри словаря вида: {Точка разделения данных : ([Indices before],[Indices after])}
         _, self.y_labels = self.find_split_points(self.y_predata)
@@ -62,9 +63,14 @@ class DecTree:
         series_list = [processed_df[col] for col in processed_df.columns]
         '''
         x = processed_df.iloc[:, :-1]  # Все кроме последнего столбца
+        x = x.loc[:, (data.nunique() > 1)] #Удаление столбцов с одинаковыми значениями
+        z = x.columns.tolist()
         y = processed_df.iloc[:, -1]   # Последний столбец
 
-        return x, y
+        #Надо провести проверку на одинаковые значения
+
+
+        return x, y, z
     
 
     def find_split_points(self, data):
@@ -146,6 +152,16 @@ class DecTree:
         return entropy(probabilities, base=2)
 
 
+
+#Класс узлов
+class Node:
+    def __init__(self, data, div_name, div_value, anc, desc1, desc2):
+        self.data = data
+        self.div_name = div_name
+        self.div_value = div_value
+        self.anc = anc
+        self.desc1 = desc1
+        self.desc2 = desc2
 
 tree = DecTree(useful)
 tree.fit()
