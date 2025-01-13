@@ -24,14 +24,8 @@ class DecTree:
     def fit(self):
         while len(self.features) > 1:
             i = 0
-            self.feature_types = self.identify_feature_types(self.data)
-            self.x_predata, self.y_predata, self.features = self.preprocess_data(self.data, self.feature_types)
-            self.x_split_val, _ = self.find_split_points(self.x_predata) #Списки внутри списков [[],[],[]]
-            self.indices_pairs = self.splitted_indices(self.x_predata, self.x_split_val) # Словари внутри словаря вида: {Точка разделения данных : ([Indices before],[Indices after])}
-            _, self.y_labels = self.find_split_points(self.y_predata)
-            self.best_ig, self.best_name, self.best_value, self.best_before_ind, self.best_after_ind = self.ig_find(self.indices_pairs, self.y_labels) #что такое селф у лейблс втф; у лейблы это лейблы
-            self.data = self.data.drop(columns=self.best_name)
-            self.data_bef_div, self.data_aft_div = self.data_divider(self.data, self.best_before_ind, self.best_after_ind)
+            
+            processing
 
             self.nodepack[f'node_{i}'].update_params(self.best_name, self.best_value, ) 
             #div_name = None, div_value = None, anc = None, desc1 = None, desc2 = None, lvl = None
@@ -176,8 +170,17 @@ class DecTree:
 
         return before_data, after_data
     
-    def processing(self):
-        
+    def processing(self, data): #На вход дается датафрейм с именными столбиками. Находится лучшее разделение по признаку
+        self.feature_types = self.identify_feature_types(data)
+        self.x_predata, self.y_predata, self.features = self.preprocess_data(data, self.feature_types)
+        self.x_split_val, _ = self.find_split_points(self.x_predata) #Списки внутри списков [[],[],[]]
+        self.indices_pairs = self.splitted_indices(self.x_predata, self.x_split_val) # Словари внутри словаря вида: {Точка разделения данных : ([Indices before],[Indices after])}
+        _, self.y_labels = self.find_split_points(self.y_predata)
+        self.best_ig, self.best_name, self.best_value, self.best_before_ind, self.best_after_ind = self.ig_find(self.indices_pairs, self.y_labels) #что такое селф у лейблс втф; у лейблы это лейблы
+        self.data = self.data.drop(columns=self.best_name)
+        self.data_bef_div, self.data_aft_div = self.data_divider(self.data, self.best_before_ind, self.best_after_ind)
+
+        return self.best_name, self.best_value, self.data_bef_div, self.data_aft_div
 
 
 
