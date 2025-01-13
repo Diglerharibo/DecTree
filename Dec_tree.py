@@ -17,15 +17,28 @@ class DecTree:
         # Удаляем все строки с NA
         self.data = data.dropna()
         self.features = self.data.columns.tolist()
+        self.nodepack = {}
+        self.node0 = Node(self.data)
+        self.nodepack['node_0'] = self.node0
 
     def fit(self):
-        self.feature_types = self.identify_feature_types(self.data)
-        self.x_predata, self.y_predata, self.features = self.preprocess_data(self.data, self.feature_types)
-        self.x_split_val, _ = self.find_split_points(self.x_predata) #Списки внутри списков [[],[],[]]
-        self.indices_pairs = self.splitted_indices(self.x_predata, self.x_split_val) # Словари внутри словаря вида: {Точка разделения данных : ([Indices before],[Indices after])}
-        _, self.y_labels = self.find_split_points(self.y_predata)
-        self.ig = self.ig_find(self.indices_pairs, self.y_labels) #что такое селф у лейблс втф; у лейблы это лейблы
-        print(self.ig)
+        while len(self.features) > 1:
+            i = 0
+            self.feature_types = self.identify_feature_types(self.data)
+            self.x_predata, self.y_predata, self.features = self.preprocess_data(self.data, self.feature_types)
+            self.x_split_val, _ = self.find_split_points(self.x_predata) #Списки внутри списков [[],[],[]]
+            self.indices_pairs = self.splitted_indices(self.x_predata, self.x_split_val) # Словари внутри словаря вида: {Точка разделения данных : ([Indices before],[Indices after])}
+            _, self.y_labels = self.find_split_points(self.y_predata)
+            self.best_ig, self.best_name, self.best_value, self.best_before_ind, self.best_after_ind = self.ig_find(self.indices_pairs, self.y_labels) #что такое селф у лейблс втф; у лейблы это лейблы
+            self.data = self.data.drop(columns=self.best_name)
+            self.data_bef_div, self.data_aft_div = self.data_divider(self.data, self.best_before_ind, self.best_after_ind)
+
+            self.nodepack[f'node_{i}'].update_params(self.best_name, self.best_value, ) 
+            #div_name = None, div_value = None, anc = None, desc1 = None, desc2 = None, lvl = None
+
+            nodenamedict[f'node{i}']
+            i += 2
+
 
     def identify_feature_types(self, data):
         #Определяем типы признаков: 0 - количественный, 1 - качественный.
@@ -124,16 +137,19 @@ class DecTree:
         best_ig = 0
         best_name = None
         best_value = None
+        best_before_ind = None
+        best_after_ind = None
         h_parent = self.calculate_entropy(y)
         len_all = len(y)
         for col_name in dictionary:
             for split_val in dictionary[col_name]:
                 before_ind = dictionary[col_name][split_val][0]
                 after_ind = dictionary[col_name][split_val][1]
-                before_val_y = y.loc[before_ind].tolist()
-                after_val_y = y.loc[after_ind].tolist()
+                
                 len_before = len(before_val_y)
                 len_after = len(after_val_y)
+                before_val_y = y.loc[before_ind].tolist()
+                after_val_y = y.loc[after_ind].tolist()
                 ent_before = self.calculate_entropy(before_val_y)
                 ent_after = self.calculate_entropy(after_val_y)
                 ig = h_parent - ((len_before/len_all)*ent_before + (len_after/len_all)*ent_after)
@@ -141,8 +157,10 @@ class DecTree:
                     best_ig = ig
                     best_name = col_name
                     best_value = split_val
-        
-        return best_ig, best_name, best_value
+                    best_before_ind = before_ind
+                    best_after_ind = after_ind
+
+        return best_ig, best_name, best_value, best_before_ind, best_after_ind
 
 
     def calculate_entropy(self, data):
@@ -152,16 +170,41 @@ class DecTree:
         return entropy(probabilities, base=2)
 
 
+    def data_divider(self, data, before_ind, after_ind):
+        before_data = data.loc[before_ind]
+        after_data = data.loc[after_ind]
+
+        return before_data, after_data
+    
+    def processing(self):
+        
+
+
 
 #Класс узлов
 class Node:
-    def __init__(self, data, div_name, div_value, anc, desc1, desc2):
+    def __init__(self, data, div_name = None, div_value = None, anc = None, desc1 = None, desc2 = None, lvl = None):
         self.data = data
         self.div_name = div_name
         self.div_value = div_value
         self.anc = anc
         self.desc1 = desc1
         self.desc2 = desc2
+
+    def update_params(self, div_name=None, div_value=None, anc=None, desc1=None, desc2=None, lvl=None):
+        if div_name is not None:
+            self.div_name = div_name
+        if div_value is not None:
+            self.div_value = div_value
+        if anc is not None:
+            self.anc = anc
+        if desc1 is not None:
+            self.desc1 = desc1
+        if desc2 is not None:
+            self.desc2 = desc2
+        if lvl is not None:
+            self.lvl = lvl
+
 
 tree = DecTree(useful)
 tree.fit()
